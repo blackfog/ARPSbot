@@ -1,0 +1,205 @@
+#############################################################################
+# categories
+#
+# A category can be referred to as anything in the category (<category>.*),
+# a specific member (<category>.<member>), or a set of members
+# (<category>.[<member1>|<member2>]). It cannot be referred to directly.
+
+category PREFIX
+category OPERATOR
+category COMMAND
+
+#############################################################################
+# aliases
+
+alias STRING {
+    OPERATOR.QUOTE [WORD|NUMBER|WHITESPACE]* OPERATOR.QUOTE
+}
+
+alias EQUATION {
+    ???
+}
+
+alias PATTERN {
+    ???
+}
+
+alias DICE {
+    ???
+}
+
+alias WORD {
+    [a-zA-Z_]+
+}
+
+alias IDENTIFIER {
+    [a-zA-Z_][a-zA-Z0-9_]*
+}
+
+alias NUMBER {
+    \d+
+}
+
+alias WHITESPACE {
+    \s+
+}
+
+alias ANYACTION {
+    [MACROARGS|VARIABLE|ANYCMD]
+}
+
+alias MACRO {
+    PREFIX.MACRO IDENTIFIER
+}
+
+alias MACROARGS {
+    MACRO (WHITESPACE [WORD|NUMBER|STRING])*
+}
+
+alias VARIABLE {
+    PREFIX.VAR IDENTIFIER
+}
+
+alias ANYCMD {
+    PREFIX.CMD COMMAND.* WHITESPACE .*
+}
+
+#############################################################################
+# lexeme matches to token assignments
+
+match "\"         as PREFIX.ESCAPE
+match "$"         as PREFIX.VAR
+match "!"         as PREFIX.MACRO
+match "/"         as PREFIX.CMD
+match "="         as OPERATOR.EQUALS
+match "+="        as OPERATOR.PLUSEQUALS
+match "-="        as OPERATOR.MINUSEQUALS
+match "++"        as OPERATOR.INCREMENT
+match "--"        as OPERATOR.DECREMENT
+match "*="        as OPERATOR.MULTIPLYEQUALS
+match "/="        as OPERATOR.DIVIDEEQUALS
+match "+"         as OPERATOR.ADD
+match "-"         as OPERATOR.MINUS
+match "*"         as OPERATOR.MULTIPLY
+match "/"         as OPERATOR.DIVIDE
+match "\("        as OPERATOR.OPENPAREN
+match "\)"        as OPERATOR.CLOSEPAREN
+match "clear"     as OPERATOR.CLEAR
+match "delete"    as OPERATOR.DELETE
+match "reset"     as OPERATOR.RESET
+match ":"         as OPERATOR.MAXIMUM
+match ";"         as OPERATOR.CMDSEPARATOR
+match "show"      as OPERATOR.SHOW
+match "vars"      as COMMAND.SHOWVARS
+match "roll"      as COMMAND.ROLL
+match "->"        as OPERATOR.COMMENT
+match "calc"      as COMMAND.CALCULATE
+match "as"        as COMMAND.AS
+match "say"       as OPERATOR.SAY
+match "do"        as OPERATOR.DO
+match "character" as COMMAND.CHARACTER
+match "create"    as OPERATOR.CREATE
+match "describe"  as OPERATOR.DESCRIBE
+match "role"      as COMMAND.ROLE
+match "begin"     as OPERATOR.BEGIN
+match "end"       as OPERATOR.END
+match "say"       as COMMAND.SAY
+match "do"        as COMMAND.DO
+match "here"      as COMMAND.HERE
+match "taps"      as COMMAND.TAPS
+match "next|n"    as COMMAND.NEXT
+match "gm"        as OPERATOR.GM
+match "gmonly"    as COMMAND.GMONLY
+match "asnpc"     as COMMAND.ASNPC
+match "\""        as OPERATOR.QUOTE
+match "help"      as COMMAND.HELP
+match "variables" as COMMAND.HELPVARS
+match "macros"    as COMMAND.HELPMACROS
+
+#############################################################################
+# syntax
+#
+# ... means the command is a continuation of the non-indented member immediately above it
+# ||  means the command preceding can terminate there OR that it can continue with the indented options
+
+syntax {
+    PREFIX.VAR IDENTIFIER ||
+    	... OPERATOR.[INCREMENT|DECREMENT]
+        ... WHITESPACE? OPERATOR.EQUALS WHITESPACE? [WORD|NUMBER|STRING|MACRO|VARIABLE]
+        ... WHITESPACE? OPERATOR.[EQUALS|PLUSEQUALS|MINUSEQUALS|MULTIPLYEQUALS|DIVIDEEQUALS] WHITESPACE? [NUMBER|MACRO|VARIABLE]
+        ... WHITESPACE? OPERATOR.[EQUALS|PLUSEQUALS|MINUSEQUALS|MULTIPLYEQUALS|DIVIDEEQUALS] WHITESPACE? [NUMBER|MACRO|VARIABLE] OPERATOR.MAXIMUM [NUMBER|MACRO|VARIABLE]
+        ... WHITESPACE? OPERATOR.[PLUS|MINUS] [NUMBER|MACRO|VARIABLE]
+        ... WHITESPACE [EQUATION|MACRO|VARIABLE]
+        ... WHITESPACE OPERATOR.[CLEAR|DELETE|RESET]
+}
+
+syntax {
+    PREFIX.MACRO IDENTIFIER ||
+        ... WHITESPACE? OPERATOR.EQUALS WHITESPACE? [STRING|MACRO|VARIABLE] (OPERATOR.CMDSEPARATOR WHITESPACE? [STRING|MACRO|VARIABLE])*
+        ... WHITESPACE OPERATOR.[SHOW|DELETE]
+        ... (WHITESPACE [WORD|NUMBER|STRING|MACRO|VARIABLE])*
+}
+
+syntax {
+    PREFIX.CMD COMMAND.ROLL WHITESPACE [DICE|MACRO|VARIABLE] (WHITESPACE OPERATOR.COMMENT WHITESPACE [WORD|STRING|MACRO|VARIABLE])?
+}
+
+syntax {
+    PREFIX.CMD COMMAND.CALCULATE WHITESPACE [EQUATION|NUMBER|MACRO|VARIABLE]
+}
+
+syntax {
+    PREFIX.CMD COMMAND.AS WHITESPACE IDENTIFIER WHITESPACE
+        ... OPERATOR.SAY WHITESPACE [WORD|STRING|MACRO|VARIABLE] (WHITESPACE [WORD|STRING|MACRO|VARIABLE])?
+        ... OPERATOR.DO WHITESPACE [WORD|STRING|MACRO|VARIABLE]
+}
+
+syntax {
+    PREFIX.CMD COMMAND.CHARACTER WHITESPACE
+        ... OPERATOR.CREATE WHITESPACE IDENTIFIER (WHITESPACE STRING)?
+        ... OPERATOR.DESCRIBE WHITESPACE IDENTIFIER WHITESPACE STRING
+        ... OPERATOR.DELETE WHITESPACE IDENTIFIER
+        ... OPERATOR.SHOW (WHITESPACE IDENTIFIER)?
+}
+
+syntax {
+    PREFIX.CMD COMMAND.HERE
+}
+
+syntax {
+    PREFIX.CMD COMMAND.TAPS ||
+        ... WHITESPACE IDENTIFIER WHITESPACE ([NUMBER|MACRO|VARIABLE]|OPERATOR.[PLUS|MINUS] [NUMBER|MACRO|VARIABLE])
+        ... WHITESPACE ([NUMBER|MACRO|VARIABLE]|OPERATOR.[PLUS|MINUS] [NUMBER|MACRO|VARIABLE])
+        ... WHITESPACE OPERATOR.RESET
+}
+
+syntax {
+    PREFIX.CMD COMMAND.NEXT
+}
+
+syntax {
+    PREFIX.CMD COMMAND.ROLE ||
+        ... WHITESPACE (OPERATOR.GM|IDENTIFIER) WHITESPACE OPERATOR.[BEGIN|END]
+}
+
+syntax {
+    PREFIX.CMD COMMAND.SAY WHITESPACE [WORD|STRING|MACRO|VARIABLE] (WHITESPACE [WORD|STRING|MACRO|VARIABLE])?
+}
+
+syntax {
+    PREFIX.CMD COMMAND.DO WHITESPACE [WORD|STRING|MACRO|VARIABLE]
+}
+
+syntax {
+    PREFIX.CMD COMMAND.GMONLY WHITESPACE ANYACTION
+}
+
+syntax {
+    PREFIX.CMD COMMAND.ASNPC WHITESPACE IDENTIFIER WHITESPACE
+        ... OPERATOR.SAY WHITESPACE [WORD|STRING|MACRO|VARIABLE] (WHITESPACE [WORD|STRING|MACRO|VARIABLE])?
+        ... OPERATOR.DO WHITESPACE [WORD|STRING|MACRO|VARIABLE]
+}
+
+syntax {
+    PREFIX.CMD COMMAND.HELP (WHITESPACE COMMAND.*)?
+}

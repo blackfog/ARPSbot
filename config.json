@@ -1,0 +1,14 @@
+{
+	"debug": true,
+	"prefix": {
+		"pattern": "^[!/$]",
+		"command": "/",
+		"variable": "$",
+		"macro": "!"
+	},
+	"token": "NzA3MTc0ODc5MjM3MjQyOTY2.XrVfTQ.GWLQS3Hx_5dyBEe6LkZAwtqd0Gk",
+	"database": {
+		"dialect": "sqlite",
+		"storage": "arpsbot.sqlite"
+	}
+}
