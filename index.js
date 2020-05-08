@@ -35,9 +35,12 @@ client.on('message', message => {
 
     if (!message.content.match(new RegExp(config.prefix.pattern)) || message.author.bot) return;
 
-    const args      = message.content.trim().slice(1).split(/\s+/);
+    let args = [...message.content.matchAll(/([^\s]*)"(.*?)"([^\s]*)|([^\s]+)/g)].map(function (match) {
+        return match[0]
+    });
+
     const prefix    = message.content.trim().charAt(0)
-    let commandName = args.shift().toLowerCase();
+    let commandName = args.shift().slice(1).toLowerCase();
 
     // process commands
 
@@ -45,9 +48,11 @@ client.on('message', message => {
         case config.prefix.command:
             break;
         case config.prefix.variable:
+            args.unshift(commandName.slice(1));
             commandName = 'variable';
             break;
         case config.prefix.macro:
+            args.unshift(commandName.slice(1));
             commandName = 'macro';
             break;
         default:

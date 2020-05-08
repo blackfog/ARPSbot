@@ -5,9 +5,9 @@ export class Database {
 
     constructor(config) {
         this.connection = new Sequelize({
-            dialect: config.dialect,
-            logging: config.debug,
-            storage: config.storage
+            dialect: config.database.dialect,
+            logging: config.debug ? console.log : false,
+            storage: config.database.storage
         });
 
         this.setUpTables();
