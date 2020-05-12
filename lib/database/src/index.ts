@@ -1,7 +1,13 @@
-import { Sequelize, DataTypes } from "sequelize";
+import { Sequelize, DataTypes, Model } from "sequelize";
 
 export class Database {
-    public connection: Sequelize
+    public connection: Sequelize;
+
+    public Characters: typeof Model;
+    public CharacterChannels: typeof Model;
+    public GMChannels: typeof Model;
+    public Variables: typeof Model;
+    public Macros: typeof Model;
 
     constructor(config) {
         this.connection = new Sequelize({
@@ -21,7 +27,7 @@ export class Database {
 
     private setUpTables(): void {
         // characters (server/guild, user, name, full_name, description)
-        this.connection.define('characters', {
+        this.Characters = this.connection.define('characters', {
             character_id: {
                 type: DataTypes.BIGINT,
                 autoIncrement: true,
@@ -44,10 +50,10 @@ export class Database {
             },
             full_name: DataTypes.STRING,
             description: DataTypes.TEXT
-        });
+        }, { timestamps: false });
 
         // character_channels (character_id, channel)
-        this.connection.define('character_channels', {
+        this.CharacterChannels = this.connection.define('character_channels', {
             character_id: {
                 type: DataTypes.BIGINT,
                 unique: 'character_channels_uq',
@@ -62,10 +68,10 @@ export class Database {
                 allowNull: false,
                 unique: 'character_channels_uq'
             }
-        });
+        }, { timestamps: false });
 
         // gm_channels (user, channel)
-        this.connection.define('gm_channels', {
+        this.GMChannels = this.connection.define('gm_channels', {
             user: {
                 type: DataTypes.STRING,
                 allowNull: false
@@ -74,10 +80,10 @@ export class Database {
                 type: DataTypes.STRING,
                 primaryKey: true
             }
-        });
+        }, { timestamps: false });
 
         // variables (server/guild, user, name, value, is_numeric)
-        this.connection.define('variables', {
+        this.Variables = this.connection.define('variables', {
             variable_id: {
                 type: DataTypes.BIGINT,
                 autoIncrement: true,
@@ -104,10 +110,10 @@ export class Database {
                 defaultValue: false,
                 allowNull: false
             }
-        });
+        }, { timestamps: false });
 
         // macros (server/guild, user, name, body)
-        this.connection.define('macros', {
+        this.Macros = this.connection.define('macros', {
             macro_id: {
                 type: DataTypes.BIGINT,
                 autoIncrement: true,
@@ -129,6 +135,6 @@ export class Database {
                 unique: 'macros_uq'
             },
             body: DataTypes.TEXT
-        });
+        }, { timestamps: false });
     }
 }

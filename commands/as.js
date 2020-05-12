@@ -10,27 +10,36 @@ module.exports = {
     },
 	execute(message, args, db) {
         if (args.length < 3) {
-            this.showUsage(message);
-            return;
+            return this.showUsage(message);
         }
 
-        const name      = args[0].toLowerCase();
+        const name      = args[0];
         const operation = args[1].toLowerCase();
-        const action    = args[2];
+        const action    = args[2].replace(/"/g, '');
         const language  = args[3];
 
         if (operation !== "say" && operation !== "do") {
-            this.showUsage(message, "Invalid action:");
-            return;
+            return this.showUsage(message, "Invalid action:");
         }
 
         if (operation !== "say" && language !== undefined) {
-            this.showUsage(message, 'Language is only allowed with the say operator:');
-            return;
+            return this.showUsage(message, 'Language is only allowed with the say operator:');
         }
 
         // TODO: does the character name exist? If not, error
 
-		message.reply('I\'m sorry, but /as is not implemented yet'); // depends on /char
+        let text = '';
+
+        switch (operation) {
+            case 'say':
+                const lang = language === undefined ? '' : `, in ${language},`;
+                text = `**${name}**${lang} says:\n\n${action}`;
+                break;
+            case 'do':
+                text = `_**${name}** ${action}_`;
+                break;
+        }
+
+		message.channel.send(text);
 	}
 };
