@@ -3,16 +3,20 @@
       "target": "es6",
       "module": "commonjs",
       "outDir": "dist",
-      "sourceMap": true
+      "sourceMap": true,
+      "resolveJsonModule": true,
+      "esModuleInterop": true,
+      "lib": ["ES2020"]
     },
     "include": [
       "src/app.ts",
-      "src/lib/**/*.ts"
+      "src/lib/**/*.ts",
+      "src/commands/*.ts"
     ],
     "exclude": [
-        "node_modules",
-        "./node_modules",
-        "./node_modules/*",
-        "./node_modules/@types/node/index.d.ts"
+      "node_modules",
+      "./node_modules",
+      "./node_modules/*",
+      "./node_modules/@types/node/index.d.ts"
     ]
 }

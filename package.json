@@ -2,9 +2,9 @@
   "name": "arpsbot",
   "version": "1.0.0",
   "description": "Discord bot for ARPS and other RPGs",
-  "main": "dist/app.js",
+  "main": "dist/src/app.js",
   "scripts": {
-    "start": "tsc && node dist/app.js",
+    "start": "tsc && node dist/src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Craig Pearlman",

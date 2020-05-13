@@ -1,25 +1,33 @@
-const fs        = require('fs');
-const Discord   = require('discord.js');
-// const Sequelize = require('sequelize');
-const config    = require('./config.json');
-const ARPSbot   = require('./dist/index.js');
+import * as Discord from 'discord.js';
+import * as config from '../config.json';
+
+import { readdirSync } from 'fs';
+import { Database } from './lib/database';
+import { Command } from './lib/command';
 
 /****************************************************************************/
 
-const client = new Discord.Client();
+class DiscordClient extends Discord.Client {
+    public commands: Discord.Collection<string, Command>
+}
+
+const client = new DiscordClient();
 
 client.commands = new Discord.Collection();
 
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = readdirSync(__dirname + '/commands/').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-	const command = require(`./commands/${file}`);
-	client.commands.set(command.name, command);
+    import(__dirname + `/commands/${file}`)
+        .then(command => {
+            if (command === undefined || command.instance === undefined) return;
+            client.commands.set(command.instance.name, new command.instance());
+        });
 }
 
 /****************************************************************************/
 
-const db = new ARPSbot.Database(config);
+const db = new Database(config);
 
 /****************************************************************************/
 
@@ -67,8 +75,14 @@ client.on('message', message => {
 
     const command = client.commands.get(commandName);
 
+    if (command === undefined) return;
+
     try {
-        command.execute(message, args, db);
+        if (command.name === 'help') {
+            command.execute(message, args, db, { client: client });
+        } else {
+            command.execute(message, args, db);
+        }
     } catch (error) {
         console.error(error);
         message.reply('there was an error trying to execute that command!');
