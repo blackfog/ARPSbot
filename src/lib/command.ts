@@ -6,7 +6,6 @@ export class Command {
     public helpName: string;
     public description: string;
     public usage: string[];
-    public role: RegExp;
 
     public showUsage(message: Discord.Message, label: string = 'Usage:', isDM: boolean = false) {
         const destination = isDM ? message.author : message.channel;

@@ -2,14 +2,37 @@ import { Collection } from 'discord.js';
 
 /****************************************************************************/
 
-export interface Player { }
+export interface Player {
+    userId: number;
+    name: string;
+
+    identity(): string;
+}
 
 export class PC implements Player {
     public userId: number;
+    public name = null;
+
+    constructor(userId: number) {
+        this.userId = userId;
+    }
+
+    identity(): string {
+        return this.userId.toString();
+    }
 }
 
 export class NPC implements Player {
+    public userId = null;
     public name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    identity(): string {
+        return this.name;
+    }
 }
 
 /****************************************************************************/
@@ -52,9 +75,10 @@ export class ADnD implements Preset { // 2e
 
 /****************************************************************************/
 
-export class RoundHasStartedError extends Error { }
-export class RoundHasNotStartedError extends Error { }
-export class PlayerNotEnrolledError extends Error { }
+export class InitiativeError extends Error { }
+export class RoundHasStartedError extends InitiativeError { }
+export class RoundHasNotStartedError extends InitiativeError { }
+export class PlayerNotEnrolledError extends InitiativeError { }
 
 // my kingdom for Swift-style enums here (methods!)
 enum State {
@@ -66,8 +90,8 @@ enum State {
 }
 
 export class Initiative {
-    public guildId: number;
-    public channelId: number;
+    public guildId: string;
+    public channelId: string;
 
     private _settings = new Settings();
     private _tracker  = new Collection<Player, number>();
@@ -79,7 +103,7 @@ export class Initiative {
 
     /****************************************************************************/
 
-    constructor(guildId: number, channelId: number) {
+    constructor(guildId: string, channelId: string) {
         this.guildId   = guildId;
         this.channelId = channelId;
     }
@@ -110,12 +134,10 @@ export class Initiative {
 
         this._state   = State.started;
         this._max     = this.getMaximum();
-        this._current = this._start;
         this._start   = this.startingValue();
+        this._current = this._start;
 
         this._tracker = this._tracker.sorted((a, b) => b - a);
-
-        this.next();
     }
 
     public next() {
@@ -186,8 +208,6 @@ export class Initiative {
         this._current = this._start;
 
         this._passes++;
-
-        this.next();
     }
 
     public preset(preset: Preset) {

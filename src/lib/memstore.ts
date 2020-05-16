@@ -1,5 +1,5 @@
 import * as Discord from 'discord.js';
+import { Initiative } from '../lib/initiative';
 
-const store = new Discord.Collection();
-
-export default store;
+export const shared     = new Discord.Collection();
+export const initiative = new Discord.Collection<string, Initiative>();

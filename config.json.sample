@@ -10,5 +10,6 @@
 	"database": {
 		"dialect": "sqlite",
 		"storage": "arpsbot.sqlite"
-	}
+	},
+	"gm_role": "-gm$"
 }
