@@ -68,11 +68,11 @@ export class init extends Command {
                     break;
                 case 'preset':
                     if (!isGM) throw GMRequiredError;
-                    this.preset(message, initiative, args[2]);
+                    this.preset(message, initiative, args[1]);
                     break;
                 case 'set':
                     if (!isGM) throw GMRequiredError;
-                    this.set(message, initiative, args[2], args[3]);
+                    this.set(message, initiative, args[1], args[2]);
                     break;
                 case 'order':
                     this.showOrder(message, initiative);
@@ -158,23 +158,25 @@ export class init extends Command {
     }
 
     private preset(message: Discord.Message, initiative: Initiative.Initiative, name: string) {
-        let p: Initiative.Preset
+        let pset: Initiative.Preset;
 
         switch (name) {
             case 'arps':
-                p = new Initiative.ARPS();
+                pset = new Initiative.ARPS();
                 break;
             case 'dnd':
-                p = new Initiative.DnD();
+                pset = new Initiative.DnD();
                 break;
             case 'adnd':
-                p = new Initiative.ADnD();
+                pset = new Initiative.ADnD();
                 break;
             default:
                 throw new InvalidPresetError(`"${name}" is not a known preset.`);
         }
 
-        initiative.preset(p);
+        initiative.preset(pset);
+
+        message.reply(`initiative set to **${pset.description}** style.`);
     }
 
     private set(message: Discord.Message, initiative: Initiative.Initiative, setting: string, value: string) {
@@ -221,6 +223,8 @@ export class init extends Command {
             default:
                 throw new InvalidSettingError(`"${setting}" is not a valid setting.`);
         }
+
+        message.reply(`initiative __${setting}__ set to **${value}**.`);
     }
 
     private assign(message: Discord.Message, isGM: boolean, initiative: Initiative.Initiative, args: string[]) {
@@ -243,8 +247,20 @@ export class init extends Command {
 
         if (!operator) {
             initiative.set(player, parseInt(amount));
+
+            if (name !== null) {
+                message.reply(`_${name}_ is ready.`);
+            } else {
+                message.reply('you\'re all set.');
+            }
         } else {
             initiative.update(player, operator === '+' ? parseInt(amount) : -parseInt(amount));
+
+            if (name !== null) {
+                message.reply(`_${name}_\'s initiative has been updated.`);
+            } else {
+                message.reply('your initiative is updated.');
+            }
         }
     }
 
@@ -260,7 +276,11 @@ export class init extends Command {
     private showOrder(message: Discord.Message, initiative: Initiative.Initiative) {
         let lines: string[] = [];
 
-        for (const entry of initiative.tracker.sorted((a, b) => b - a)) {
+        const sortBy = initiative.direction === Initiative.Direction.down ?
+            (a, b) => b - a :
+            (a, b) => a - b;
+
+        for (const entry of initiative.tracker.sorted(sortBy)) {
             const player = entry[0];
             const init   = entry[1];
 

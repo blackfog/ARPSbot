@@ -50,24 +50,32 @@ export class Settings {
 /****************************************************************************/
 
 export interface Preset {
+    description: string;
+
     direction: Direction;
     style: Style;
     cycle: Cycle;
 }
 
 export class ARPS implements Preset {
+    description: string = 'ARPS';
+
     direction: Direction = Direction.down;
     style: Style = Style.counted;
     cycle: Cycle = Cycle.linear;
 }
 
-export class DnD implements Preset { // 5e
+export class DnD implements Preset {
+    description: string = 'D&D (5e)';
+
     direction: Direction = Direction.down;
     style: Style = Style.ordered;
-    cycle: Cycle = Cycle.linear;
+    cycle: Cycle = Cycle.circular;
 }
 
-export class ADnD implements Preset { // 2e
+export class ADnD implements Preset {
+    description: string = 'AD&D (2e)';
+
     direction: Direction = Direction.up;
     style: Style = Style.ordered;
     cycle: Cycle = Cycle.circular;
@@ -146,7 +154,7 @@ export class Initiative {
             case Direction.up:
                 this.increment();
 
-                if (this.cycle === Cycle.circular && this._current > this._max) {
+                if (this.cycle === Cycle.circular && this._current === this._max) {
                     this.reset();
                 }
 
@@ -154,7 +162,7 @@ export class Initiative {
             case Direction.down:
                 this.decrement();
 
-                if (this.cycle === Cycle.circular && this._current <= 0) {
+                if (this.cycle === Cycle.circular && this._current === 0) {
                     this.reset();
                 }
 
@@ -264,23 +272,25 @@ export class Initiative {
         }
     }
 
-    private increment(): number {
+    // FIXME: this doesn't cycle right when direction is up
+    // FIXME: when direction is set to up, it starts the initiative at 0 (should be 1 for counted or min() for ordered)
+    private increment() {
         switch (this.style) {
             case Style.counted:
                 return ++this._current;
             case Style.ordered:
-                const remaining = this._tracker.filter((val) => val >= this._current);
-                return remaining.last();
+                const nextUp = this._tracker.filter((val) => val > this._current).last();
+                this._current = nextUp ?? this._max;
         }
     }
 
-    private decrement(): number {
+    private decrement() {
         switch (this.style) {
             case Style.counted:
                 return --this._current;
             case Style.ordered:
-                const remaining = this._tracker.filter((val) => val <= this._current);
-                return remaining.first();
+                const nextUp = this._tracker.filter((val) => val < this._current).first();
+                this._current = nextUp ?? 0;
         }
     }
 
