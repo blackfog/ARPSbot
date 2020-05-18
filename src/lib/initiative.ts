@@ -3,17 +3,17 @@ import { Collection } from 'discord.js';
 /****************************************************************************/
 
 export interface Player {
-    userId: number;
+    userId: string;
     name: string;
 
     identity(): string;
 }
 
 export class PC implements Player {
-    public userId: number;
+    public userId: string;
     public name = null;
 
-    constructor(userId: number) {
+    constructor(userId: string) {
         this.userId = userId;
     }
 
@@ -113,20 +113,19 @@ export class Initiative {
     public set(player: Player, initiative: number) {
         if (this.isInProgress()) throw new RoundHasStartedError();
 
-        this._tracker.set(player, Math.trunc(initiative));
+        this.updateTracker(player, Math.trunc(initiative));
     }
 
     public update(player: Player, adjustment: number) {
-        if (this.isInProgress()) throw new RoundHasStartedError();
-        if (!this._tracker.has(player)) throw new PlayerNotEnrolledError();
+        if (this.style !== Style.counted && this.isInProgress()) throw new RoundHasStartedError();
 
-        let current = this._tracker.get(player);
+        let current = this._tracker.filter((_, key) => {
+            return key.identity() === player.identity();
+        }).first();
 
-        if (current === undefined) {
-            throw new ReferenceError('Player exists, but somehow has no current initiative to update');
-        }
+        if (current === undefined) throw new PlayerNotEnrolledError();
 
-        this._tracker.set(player, Math.trunc(current) + Math.trunc(adjustment));
+        this.updateTracker(player, Math.trunc(current) + Math.trunc(adjustment));
     }
 
     public begin() {
@@ -283,5 +282,15 @@ export class Initiative {
                 const remaining = this._tracker.filter((val) => val <= this._current);
                 return remaining.first();
         }
+    }
+
+    private updateTracker(player: Player, value: number) {
+        const current = this._tracker.filter((_, key) => key.identity() === player.identity()).firstKey();
+
+        if (current) {
+            this._tracker.delete(current);
+        }
+
+        this._tracker.set(player, value);
     }
 }
