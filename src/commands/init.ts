@@ -129,9 +129,10 @@ export class init extends Command {
 
     private show(message: Discord.Message, initiative: Initiative.Initiative) {
         const current = initiative.current;
-        const players = initiative.upNow().keys();
 
-        // TODO: this needs to handle the player conditions, as well
+        const players = initiative.upNow()
+            .filter((_, key) => key.condition === Initiative.Condition.normal)
+            .keys();
 
         let playerList: string[] = [];
 
@@ -278,11 +279,26 @@ export class init extends Command {
     private showMe(message: Discord.Message, initiative: Initiative.Initiative) {
         const myInit = initiative.tracker.filter((_, key) => {
             return key.identity() === message.author.id;
-        }).first();
+        });
 
-        message.reply(`your initiative is **${myInit}**.`);
+        if (!myInit || myInit.size !== 1) {
+            message.reply('you don\'t appear to have set your initiative.');
+            return;
+        }
 
-        // TODO: Add the player's condition, as well (if not normal)
+        const player = myInit.firstKey();
+        const value  = myInit.first();
+
+        let condition = '.';
+
+        if (player.condition !== Initiative.Condition.normal) {
+            const description = player.condition === Initiative.Condition.incapacitated ?
+                 'incapacitated' : 'dead';
+
+            condition = `; however, you are currently ${description}.`;
+        }
+
+        message.reply(`your initiative is **${value}**${condition}`);
     }
 
     private showOrder(message: Discord.Message, initiative: Initiative.Initiative) {
