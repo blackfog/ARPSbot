@@ -10,6 +10,7 @@ export class GMRequiredError extends Initiative.InitiativeError { }
 export class InvalidPresetError extends Initiative.InitiativeError { }
 export class InvalidSettingError extends Initiative.InitiativeError { }
 export class InvalidSettingOptionError extends InvalidSettingError { }
+export class InvalidConditionError extends Initiative.InitiativeError { }
 
 export class init extends Command {
     constructor() {
@@ -25,6 +26,7 @@ export class init extends Command {
             '\n⚠️ For the channel GM only:\n',
             '**/init** __begin|end|next|reset__ ',
             '**/init** __name__ [ +|- ]__value__',
+            '**/init** **condition** __name|username__ __n|i|d__',
             '**/init** **preset** __arps|dnd|adnd__',
             '**/init** **set** **direction** __up|down__',
             '**/init** **set** **style** __counted|ordered__',
@@ -80,6 +82,9 @@ export class init extends Command {
                 case 'show':
                     this.showMe(message, initiative);
                     break;
+                case 'condition':
+                    this.condition(message, initiative, args[1], args[2]);
+                    break;
                 default:
                     this.assign(message, isGM, initiative, args);
                     break;
@@ -96,7 +101,11 @@ export class init extends Command {
                 return message.reply('the round hasn\'t started yet!');
             } else if (error instanceof Initiative.PlayerNotEnrolledError) {
                 return message.reply('I can\'t modify a nonexistent initiative.');
-            } else if (error instanceof InvalidPresetError || error instanceof InvalidSettingError) {
+            } else if (
+                error instanceof InvalidPresetError    ||
+                error instanceof InvalidSettingError   ||
+                error instanceof InvalidConditionError
+            ) {
                 return message.reply(error.message);
             } else {
                 throw error;
@@ -122,7 +131,9 @@ export class init extends Command {
         const current = initiative.current;
         const players = initiative.upNow().keys();
 
-        let playerList = new Array<string>();
+        // TODO: this needs to handle the player conditions, as well
+
+        let playerList: string[] = [];
 
         for (const player of players) {
             if (player instanceof Initiative.PC) {
@@ -270,9 +281,10 @@ export class init extends Command {
         }).first();
 
         message.reply(`your initiative is **${myInit}**.`);
+
+        // TODO: Add the player's condition, as well (if not normal)
     }
 
-    // TODO: do I want to show all the initiative values if style = counted? Optionally?
     private showOrder(message: Discord.Message, initiative: Initiative.Initiative) {
         let lines: string[] = [];
 
@@ -282,21 +294,100 @@ export class init extends Command {
 
         for (const entry of initiative.tracker.sorted(sortBy)) {
             const player = entry[0];
-            const init   = entry[1];
+
+            const init = player.condition === Initiative.Condition.incapacitated ?
+                '(OUT)' :
+                entry[1].toString();
+
+            let line: string;
 
             if (player instanceof Initiative.PC) {
                 if (player.identity() === message.author.id) {
-                    lines.push(`**${init}** <@!${player.identity()}>`);
+                    line = `**${init}** <@!${player.identity()}>`;
                 } else {
                     const username = message.client.users.cache.get(player.identity()).username;
-                    lines.push(`**${init}** ${username}`);
+                    line = `**${init}** ${username}`;
+                }
+
+                if (player.condition === Initiative.Condition.dead) {
+                    line = '~~' + line + `~~`;
                 }
             } else if (player instanceof Initiative.NPC) {
-                lines.push(`**${init}** _${player.identity()}_`);
+                line = `**${init}** _${player.identity()}_`;
             }
+
+            if (player.condition === Initiative.Condition.dead) {
+                line = '~~' + line + `~~`;
+            }
+
+            lines.push(line);
         }
 
         message.channel.send('__**Intiative Order:**__\n' + lines.join("\n"));
+    }
+
+    private condition(message: Discord.Message, initiative: Initiative.Initiative, name: string, conditionAbbv: string) {
+        if (!conditionAbbv.toLocaleLowerCase().match(/^[nid]$/)) {
+            throw new InvalidConditionError('Condition should be one of n, i, or d.');
+        }
+
+        let condition: Initiative.Condition;
+
+        switch (conditionAbbv) {
+            case 'n':
+                condition = Initiative.Condition.normal;
+                break;
+            case 'i':
+                condition = Initiative.Condition.incapacitated;
+                break;
+            case 'd':
+                condition = Initiative.Condition.dead;
+                break;
+        }
+
+        const player = initiative.tracker.filter((_, key) => {
+            if (key instanceof Initiative.PC) {
+                const username = message.client.users.cache.get(key.identity()).username;
+                if (!username) return false;
+                return username.toLocaleLowerCase() === name.toLocaleLowerCase();
+            } else if (key instanceof Initiative.NPC) {
+                return key.identity().toLocaleLowerCase() === name.toLocaleLowerCase();
+            } else {
+                return false;
+            }
+        }).firstKey();
+
+        if (!player) {
+            throw new Initiative.PlayerNotEnrolledError();
+        }
+
+        player.condition = condition;
+
+        if (player instanceof Initiative.PC) {
+            switch (condition) {
+                case Initiative.Condition.normal:
+                    message.channel.send(`<@!${player.identity()}> walks among us (again).`);
+                    break;
+                case Initiative.Condition.incapacitated:
+                    message.channel.send(`<@!${player.identity()}> is out of commission.`);
+                    break;
+                case Initiative.Condition.dead:
+                    message.channel.send(`<@!${player.identity()}> has gone to meet their maker.`);
+                    break;
+            }
+        } else if (player instanceof Initiative.NPC) {
+            switch (condition) {
+                case Initiative.Condition.normal:
+                    message.channel.send(`_${player.identity()}_ is able-bodied (again).`);
+                    break;
+                case Initiative.Condition.incapacitated:
+                    message.channel.send(`_${player.identity()}_ is out cold.`);
+                    break;
+                case Initiative.Condition.dead:
+                    message.channel.send(`_${player.identity()}_ has shuffled off this mortal coil.`);
+                    break;
+            }
+        }
     }
 }
 

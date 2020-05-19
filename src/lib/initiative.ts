@@ -2,9 +2,12 @@ import { Collection } from 'discord.js';
 
 /****************************************************************************/
 
+export enum Condition { normal, incapacitated, dead }
+
 export interface Player {
     userId: string;
     name: string;
+    condition: Condition;
 
     identity(): string;
 }
@@ -12,6 +15,7 @@ export interface Player {
 export class PC implements Player {
     public userId: string;
     public name = null;
+    public condition = Condition.normal;
 
     constructor(userId: string) {
         this.userId = userId;
@@ -25,6 +29,7 @@ export class PC implements Player {
 export class NPC implements Player {
     public userId = null;
     public name: string;
+    public condition = Condition.normal;
 
     constructor(name: string) {
         this.name = name;
@@ -106,6 +111,7 @@ export class Initiative {
     private _state    = State.idle;
     private _current  = 0;
     private _start    = 0;
+    private _min      = 0;
     private _max      = 0;
     private _passes   = 1;
 
@@ -141,8 +147,10 @@ export class Initiative {
 
         this._state   = State.started;
         this._max     = this.getMaximum();
+        this._min     = this.getMinimum();
         this._start   = this.startingValue();
         this._current = this._start;
+        this._passes  = 1;
 
         this._tracker = this._tracker.sorted((a, b) => b - a);
     }
@@ -152,11 +160,12 @@ export class Initiative {
 
         switch (this.direction) {
             case Direction.up:
-                this.increment();
-
                 if (this.cycle === Cycle.circular && this._current === this._max) {
                     this.reset();
+                    return;
                 }
+
+                this.increment();
 
                 break;
             case Direction.down:
@@ -184,6 +193,10 @@ export class Initiative {
         return this._start;
     }
 
+    public get min(): number {
+        return this._min;
+    }
+
     public get max(): number {
         return this._max;
     }
@@ -202,6 +215,7 @@ export class Initiative {
         this._state   = State.ended;
         this._start   = 0;
         this._current = 0;
+        this._min     = 0;
         this._max     = 0;
         this._passes  = 1;
 
@@ -263,17 +277,19 @@ export class Initiative {
         return [...this._tracker.values()].reduce((max, cur) => Math.max(max, cur), 0);
     }
 
+    private getMinimum(): number {
+        return [...this._tracker.values()].reduce((min, cur) => Math.min(min, cur), Infinity);
+    }
+
     private startingValue(): number {
         switch (this.direction) {
             case Direction.up:
-                return 0;
+                return this._min;
             case Direction.down:
                 return this._max;
         }
     }
 
-    // FIXME: this doesn't cycle right when direction is up
-    // FIXME: when direction is set to up, it starts the initiative at 0 (should be 1 for counted or min() for ordered)
     private increment() {
         switch (this.style) {
             case Style.counted:
