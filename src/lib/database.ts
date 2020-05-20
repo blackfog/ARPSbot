@@ -1,13 +1,7 @@
-import { Sequelize, DataTypes, Model } from "sequelize";
+import { Sequelize, DataTypes, Model, ModelCtor } from "sequelize";
 
 export class Database {
     public connection: Sequelize;
-
-    // public Characters: typeof Model;
-    // public CharacterChannels: typeof Model;
-    // public GMChannels: typeof Model;
-    public Variables: typeof Model;
-    public Macros: typeof Model;
 
     constructor(config) {
         this.connection = new Sequelize({
@@ -23,6 +17,14 @@ export class Database {
         for (let modelName in this.connection.models) {
             this.connection.models[modelName].sync()
         }
+    }
+
+    public get Macros(): ModelCtor<Model<any, any>> {
+        return this.connection.models['macros'];
+    }
+
+    public get Variables(): ModelCtor<Model<any, any>> {
+        return this.connection.models['variables'];
     }
 
     private setUpTables(): void {
@@ -83,7 +85,7 @@ export class Database {
         // }, { timestamps: false });
 
         // variables (server/guild, user, name, value, is_numeric)
-        this.Variables = this.connection.define('variables', {
+        this.connection.define('variables', {
             variable_id: {
                 type: DataTypes.BIGINT,
                 autoIncrement: true,
@@ -113,7 +115,7 @@ export class Database {
         }, { timestamps: false });
 
         // macros (server/guild, user, name, body)
-        this.Macros = this.connection.define('macros', {
+        this.connection.define('macros', {
             macro_id: {
                 type: DataTypes.BIGINT,
                 autoIncrement: true,
