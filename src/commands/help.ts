@@ -21,7 +21,7 @@ export class help extends Command {
         }
 
         if (args.length === 1) {
-            const command = context.client.commands.get(args[0]);
+            const command = context.commands.get(args[0]);
 
             if (command === undefined) {
                 return message.reply('there is no command by that name.');
@@ -35,7 +35,7 @@ export class help extends Command {
             .setTitle('Help')
             .setDescription('The following commands are available:');
 
-        for (const command of context.client.commands.values()) {
+        for (const command of context.commands.values()) {
             embed.addField(command.helpName, command.description);
         }
 

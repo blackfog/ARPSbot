@@ -27,70 +27,11 @@ export class Database {
         return this.connection.models['variables'];
     }
 
+    /****************************************************************************/
+
     private setUpTables(): void {
-        // characters (server/guild, user, name, full_name, description)
-        // this.Characters = this.connection.define('characters', {
-        //     character_id: {
-        //         type: DataTypes.BIGINT,
-        //         autoIncrement: true,
-        //         primaryKey: true
-        //     },
-        //     guild: {
-        //         type: DataTypes.STRING,
-        //         allowNull: false,
-        //         unique: 'characters_uq'
-        //     },
-        //     user: {
-        //         type: DataTypes.STRING,
-        //         allowNull: false,
-        //         unique: 'characters_uq'
-        //     },
-        //     name: {
-        //         type: DataTypes.STRING,
-        //         allowNull: false,
-        //         unique: 'characters_uq'
-        //     },
-        //     full_name: DataTypes.STRING,
-        //     description: DataTypes.TEXT
-        // }, { timestamps: false });
-
-        // // character_channels (character_id, channel)
-        // this.CharacterChannels = this.connection.define('character_channels', {
-        //     character_id: {
-        //         type: DataTypes.BIGINT,
-        //         unique: 'character_channels_uq',
-        //         allowNull: false,
-        //         references: {
-        //             model: this.connection.models['characters'],
-        //             key: 'character_id'
-        //         }
-        //     },
-        //     channel: {
-        //         type: DataTypes.STRING,
-        //         allowNull: false,
-        //         unique: 'character_channels_uq'
-        //     }
-        // }, { timestamps: false });
-
-        // // gm_channels (user, channel)
-        // this.GMChannels = this.connection.define('gm_channels', {
-        //     user: {
-        //         type: DataTypes.STRING,
-        //         allowNull: false
-        //     },
-        //     channel: {
-        //         type: DataTypes.STRING,
-        //         primaryKey: true
-        //     }
-        // }, { timestamps: false });
-
         // variables (server/guild, user, name, value, is_numeric)
         this.connection.define('variables', {
-            variable_id: {
-                type: DataTypes.BIGINT,
-                autoIncrement: true,
-                primaryKey: true
-            },
             guild: {
                 type: DataTypes.STRING,
                 allowNull: false,
@@ -116,11 +57,6 @@ export class Database {
 
         // macros (server/guild, user, name, body)
         this.connection.define('macros', {
-            macro_id: {
-                type: DataTypes.BIGINT,
-                autoIncrement: true,
-                primaryKey: true
-            },
             guild: {
                 type: DataTypes.STRING,
                 allowNull: false,

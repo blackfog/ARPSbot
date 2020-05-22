@@ -11,5 +11,8 @@
 		"dialect": "sqlite",
 		"storage": "arpsbot.sqlite"
 	},
-	"gm_role": "-gm$"
+	"gm_role": "-gm$",
+	"docs": {
+		"baseUrl": "https://server/path/"
+	}
 }
