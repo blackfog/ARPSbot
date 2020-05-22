@@ -19,85 +19,15 @@ export class macro extends Command {
         this.helpName = '!macro';
         this.description = 'Manage macros';
         this.usage = [
-            '**!**__name__ [ **run** ] [ __arg__ __...__ ]',
-            '**!**__name__ **define|=** __definition__',
-            '**!**__name__ __remove|show__',
+            '**!**__name__ [ __arg__ __...__ ]',
+            '\n**!!define** __name__ __command__ [ __command__ __...__ ]',
+            '**!!remove|show** __name__',
+            `**!!list**`,
             `\nSee full documentation at ${config.docs.baseUrl}/macros`
         ];
     }
 
     /*
-        TODO: This really needs a `list` command, too. Some way to get the full list of your own macros.
-
-        FIXME: TODO:
-
-        Using the macro command to process the macro is a bit weird: !foo remove is ODD. Setting
-        one with !foo define x;y;z is even weirder.
-
-        This leads me to believe that there really should be a slash command involved here and the ! syntax
-        is only used to actually RUN the macro. (There'll be a similar change for variables, too.)
-
-        /macro define NAME as COMMANDS
-        /macro remove NAME
-        /macro show NAME
-        /macro run NAME [ARGS]
-
-        !NAME [args] --> this is how you RUN it or refer to it (quick access to /macro run, basically?)
-
-        Testing a quick idea:
-        !!define NAME COMMANDS
-        !!remove NAME
-        !!show NAME
-        !!list
-        !NAME [ARGS]
-
-        That's less awkward and !! basically is /macro, but I can keep the macro stuff contained to a
-        single command. I think I like that. Next update, I'll make that go. (TODO: see here)
-
-        ---
-
-        The same will be true for variables:
-
-        $$set NAME VALUE
-        $$unset NAME
-        $$show NAME
-        $$list
-        $NAME
-
-        $$set Perception 3d
-        $$set CombatSense 10
-        !!define initiative /roll $Perception + $CombatSense
-        !initiative
-
-        TODO: In each case, the names need to be enforced to identifier rules: _, A-Z, a-z, 0-9, must start with _ or letter.
-        That will avoid name collisions with the commands entirely.
-
-        TODO: IDEA: For the purposes of creating useful commands with messages, it might be worth it to include a
-        command that basically sends any message text, too, so you can insert a header or whatever or output a result of
-        the macro that's macro-specific, etc. Let's call that: /echo
-
-        /echo TEXT
-
-        That's the extent of it. I'm not worried about making it "macro only" or something since its utility outside of a
-        macro is nil.
-
-        I'm also CONSIDERING (TODO: ??) adding a barebones /if command, too. Not so useful without a variable or anything, but…
-        let's not go overboard with that functionality. So, something like:
-
-        /if $Health < 10: !alert; else: !ok
-
-        If I want to allow other commands in there directly, that could also work, but limiting that to macros might be the
-        easiest solution overall since we really don't have "blocks" of code and the like. Alternative syntax:
-
-        /if $Health < 10 ? !alert : !ok
-
-        Going ternary there feels more natural.
-
-        Either way, can get else-if blocks by calling a macro with an /if in it, and so on. This is purposely limited to avoid
-        it getting into the weeds.
-
-        ---
-
         TODO: Nowhere in here (or in this file!) did I address the whole macro arguments thing. This idea that you can call a
         macro like this:
 
@@ -111,41 +41,38 @@ export class macro extends Command {
         !foo 2
         (Internally executes: $$set Trauma 2)
 
-        (TODO: Do I still want to allow something like $Trauma = 2 as a syntax? That's more natural for variables, that's for sure.
-        As written, it's got that $$set Condition 1SQ [for Strategic Missile Launch] feel.)
-
-        Which would, as called, set the (global) variable $Trauma to 2. (And scarily, that macro that sets a variable would actually
-        work RIGHT NOW if variables.ts was actually written.)
+        I think I'll also want to make $* available, too, which will splat the entire args list.
     */
 
-    // FIXME: Need to make sure the macro isn't calling ITSELF and creating an infinite loop; that's bad
     public execute(message: Discord.Message, args: string[], db: Database, context) {
         try {
-            if (!args[0]) {
-                throw new SyntaxError();
-            }
+            const identifier = /^[_A-Za-z][_A-Za-z0-9]*$/;
+            const subCommand = (args[0] ?? '').toLocaleLowerCase();
+            const name       = (args[1] ?? '').toLocaleLowerCase();
 
-            const name = args[0].toLocaleLowerCase();
+            if (!subCommand) throw new SyntaxError();
+            if (name && !name.match(identifier)) throw new SyntaxError();
 
-            switch (args[1] ?? '<null>') {
-                case 'run':
-                case '<null>':
-                    this.run(message, db, name, context.client, context.cli);
-                    break;
-                case 'define':
-                case '=':
+            switch (subCommand) {
+                case '!define':
+                    if (!name) throw new SyntaxError();
                     this.define(message, db, name, args.slice(2));
                     break;
-                case 'remove':
-                    if (args.length > 1) throw new SyntaxError();
+                case '!remove':
+                    if (!name) throw new SyntaxError();
                     this.remove(message, db, name);
                     break;
-                case 'show':
-                    if (args.length > 1) throw new SyntaxError();
+                case '!show':
+                    if (!name) throw new SyntaxError();
                     this.show(message, db, name);
                     break;
+                case '!list':
+                    if (name) throw new SyntaxError();
+                    this.list(message, db);
+                    break;
                 default:
-                    this.runWithArgs(message, db, name, context.client, context.cli, args.slice(1));
+                    if (!subCommand.match(identifier)) throw new SyntaxError();
+                    this.run(message, db, subCommand, context.client, context.cli, args.slice(1));
                     break;
             }
         } catch (error) {
@@ -160,6 +87,17 @@ export class macro extends Command {
     }
 
     /****************************************************************************/
+
+    private async fetchAllMacros(message: Discord.Message, db: Database) {
+        const models = await db.Macros.findAll({
+            where: {
+                guild: message.guild.id,
+                user: message.author.id
+            }
+        });
+
+        return models;
+    }
 
     private async fetchMacro(message: Discord.Message, db: Database, name: string) {
         const macroModel = await db.Macros.findOne({
@@ -191,10 +129,6 @@ export class macro extends Command {
 
     /****************************************************************************/
 
-    private run(message: Discord.Message, db: Database, name: string, client: Discord.Client, cli: CLI) {
-        this.runWithArgs(message, db, name, client, cli, []);
-    }
-
     private define(message: Discord.Message, db: Database, name: string, args: any[]) {
         const newMacro = {
             guild: message.guild.id,
@@ -206,7 +140,7 @@ export class macro extends Command {
         // The Sequelize SQLite upsert doesn't return a success/fail flag (boo)
         this.upsertMacro(db, newMacro)
             .then(() => {
-                return message.author.send(`Definition for macro "!${name}" updated.`);
+                return message.reply(`the definition for macro "${name}" has been updated.`);
             });
     }
 
@@ -226,7 +160,7 @@ export class macro extends Command {
                 }
             })
             .then(() => {
-                return message.author.send(`Macro "!${name}" has been removed.`);
+                return message.reply(`the macro named "${name}" has been removed.`);
             })
             .catch(error => {
                 throw error;
@@ -243,14 +177,30 @@ export class macro extends Command {
                 return macro;
             })
             .then(macro => {
-                return message.author.send(`Definition for !${name}:\n\`${macro.body}\``);
+                return message.reply(`the definition for "${name}" is:\n\`${macro.body}\``);
             })
             .catch (() => {
                 throw new UnknownMacroError(name);
             });
     }
 
-    private runWithArgs(message: Discord.Message, db: Database, name: string, client: Discord.Client, cli: CLI, args: any[]) {
+    private list(message: Discord.Message, db: Database) {
+        this.fetchAllMacros(message, db)
+            .then(macros => {
+                if (macros.length === 0) {
+                    return message.reply('you have no macros defined.');
+                }
+
+                const names = macros.map(m => m.name).sort().join(', ');
+
+                return message.reply(`your available macros are: ${names}`);
+            })
+            .catch(() => {
+                // TODO: handle stuff?
+            });
+    }
+
+    private run(message: Discord.Message, db: Database, name: string, client: Discord.Client, cli: CLI, args: any[]) {
         this.fetchMacro(message, db, name)
             .then(macro => {
                 if (!macro) {
@@ -260,6 +210,9 @@ export class macro extends Command {
                 return macro;
             })
             .then(macro => {
+                // FIXME: Need to make sure the macro isn't calling ITSELF and creating an infinite loop; that's bad
+                // Problem is, need to check downstream, too, say if I set it here to call !foo and !foo later calls !foo or calls !bar which calls !foo.
+                // But, we DO want the ability to call a macro from a macro, so we can't just disallow that.
                 const commands = macro.body.split(/\s*;\s*/);
 
                 for (const command of commands) {

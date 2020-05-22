@@ -27,7 +27,7 @@ export class help extends Command {
                 return message.reply('there is no command by that name.');
             }
 
-            return command.showUsage(message, undefined, true);
+            return command.showUsage(message, undefined);
         }
 
         const embed = new Discord.MessageEmbed()
@@ -36,7 +36,7 @@ export class help extends Command {
             .setDescription('The following commands are available:');
 
         for (const command of context.commands.values()) {
-            embed.addField(command.helpName, command.description);
+            embed.addField(command.name, command.description);
         }
 
         return message.author.send(embed);
