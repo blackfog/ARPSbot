@@ -18,3 +18,7 @@
 
 // Which would, as called, set the (global) variable $Trauma to 2. (And scarily, that macro that sets a variable would actually
 // work RIGHT NOW if variables.ts was actually written.)
+
+/*
+
+*/
